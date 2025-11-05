@@ -1,10 +1,10 @@
-use std::{any::Any, collections::HashMap};
+use std::{any::Any, collections::HashMap, rc::Rc};
 
 use cairo_vm::{
     any_box,
     hint_processor::{
         builtin_hint_processor::hint_utils::{get_ptr_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name},
-        hint_processor_definition::{ExtensionData, HintExtension, HintProcessor, HintReference},
+        hint_processor_definition::{HintExtension, HintProcessor, HintReference},
     },
     serde::deserialize_program::ApTracking,
     types::{builtin_name::BuiltinName, exec_scope::ExecutionScopes, program::Program, relocatable::Relocatable},
@@ -18,7 +18,7 @@ use cairo_vm::{
     },
     Felt252,
 };
-use starknet_crypto::FieldElement;
+use starknet_crypto::Felt as SnFelt;
 
 use super::types::{CairoPieTask, RunProgramTask};
 use crate::hints::{
@@ -69,8 +69,8 @@ pub fn allocate_program_data_segment(
     Ok(HashMap::new())
 }
 
-fn field_element_to_felt(field_element: FieldElement) -> Felt252 {
-    let bytes = field_element.to_bytes_be();
+fn snfelt_to_felt252(f: SnFelt) -> Felt252 {
+    let bytes = f.to_bytes_be();
     Felt252::from_bytes_be(&bytes)
 }
 
@@ -173,7 +173,7 @@ pub fn validate_hash(
     // Compute the hash of the program
     let computed_program_hash = compute_program_hash_chain(&program, 0)
         .map_err(|e| HintError::CustomHint(format!("Could not compute program hash: {e}").into_boxed_str()))?;
-    let computed_program_hash = field_element_to_felt(computed_program_hash);
+    let computed_program_hash = snfelt_to_felt252(computed_program_hash);
 
     if program_hash != computed_program_hash {
         return Err(HintError::AssertionFailed(
@@ -425,23 +425,23 @@ pub fn call_task(
 fn vm_load_program(
     hint_processor: &mut dyn HintProcessor,
     exec_scopes: &mut ExecutionScopes,
-) -> Result<HashMap<Relocatable, ExtensionData>, HintError> {
+) -> Result<HintExtension, HintError> {
     let task_program_address: Relocatable = exec_scopes.get(vars::PROGRAM_ADDRESS).unwrap();
     let task = get_task_from_exec_scopes(exec_scopes)?;
     let task_program = get_program_from_task(task)?;
 
-    let mut task_program_compiled_hints = HashMap::new();
-    let task_program_hints = task_program.get_hints();
-    let task_program_hint_ranges = task_program.get_hints_ranges();
-    let task_program_references = task_program.get_references();
-    let task_program_constants = task_program.get_constants();
+    // Access program data using the new API
+    let hints_collection = &task_program.shared_program_data.hints_collection;
+    let references = &task_program.shared_program_data.reference_manager;
+    let constants = Rc::new(task_program.constants.clone());
 
-    for hint_range in task_program_hint_ranges {
-        let hint_pc = hint_range.0;
-        let hint_range_indices = hint_range.1;
-        let (s, l) = hint_range_indices;
-        for idx in *s..(*s + l.get()) {
-            let hint = task_program_hints.get(idx).unwrap();
+    let mut task_program_compiled_hints: HintExtension = HashMap::new();
+
+    // Under "extensive_hints" feature, hints_ranges is a HashMap<Relocatable, (usize, NonZeroUsize)>
+    for (hint_pc, hint_range) in hints_collection.hints_ranges.iter() {
+        let (start, len) = *hint_range;
+        for idx in start..(start + len.get()) {
+            let hint = &hints_collection.hints[idx];
 
             let new_hint_pc_segment = hint_pc.segment_index + task_program_address.segment_index;
             let new_hint_pc_offset = hint_pc.offset + task_program_address.offset;
@@ -451,21 +451,15 @@ fn vm_load_program(
                 hint.code.as_str(),
                 &hint.flow_tracking_data.ap_tracking,
                 &hint.flow_tracking_data.reference_ids,
-                task_program_references,
+                references,
+                constants.clone(),
             )?;
             task_program_compiled_hints
                 .entry(new_hint_pc)
-                .or_insert_with(ExtensionData::default)
-                .hints
+                .or_insert_with(Vec::new)
                 .push(compiled_hint);
         }
     }
-
-    task_program_compiled_hints.iter_mut().for_each(|(_, extension_data)| {
-        extension_data
-            .constants
-            .extend(task_program_constants.iter().map(|(k, v)| (k.clone(), *v)));
-    });
 
     Ok(task_program_compiled_hints)
 }

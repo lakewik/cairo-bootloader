@@ -52,7 +52,6 @@ impl HintProcessorLogic for MinimalBootloaderHintProcessor {
         vm: &mut VirtualMachine,
         exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
-        _constants: &HashMap<String, Felt252>,
     ) -> Result<HintExtension, HintError> {
         let hint_data = hint_data.downcast_ref::<HintProcessorData>().ok_or(HintError::WrongHintData)?;
 
@@ -104,7 +103,6 @@ impl HintProcessorLogic for MinimalBootloaderHintProcessor {
         _vm: &mut VirtualMachine,
         _exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
-        _constants: &HashMap<String, Felt252>,
     ) -> Result<(), HintError> {
         // This method will never be called, but must be defined for `HintProcessorLogic`.
 
@@ -150,7 +148,6 @@ impl HintProcessorLogic for BootloaderHintProcessor {
         _vm: &mut VirtualMachine,
         _exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
-        _constants: &HashMap<String, Felt>,
     ) -> Result<(), HintError> {
         // This method will never be called, but must be defined for `HintProcessorLogic`.
 
@@ -164,13 +161,12 @@ impl HintProcessorLogic for BootloaderHintProcessor {
         vm: &mut VirtualMachine,
         exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
-        constants: &HashMap<String, Felt>,
     ) -> Result<HintExtension, HintError> {
         // Cascade through the internal hint processors until we find the hint implementation.
 
         match self
             .bootloader_hint_processor
-            .execute_hint_extensive(vm, exec_scopes, hint_data, constants)
+            .execute_hint_extensive(vm, exec_scopes, hint_data)
         {
             Err(HintError::UnknownHint(_)) => {}
             result => {
@@ -179,7 +175,7 @@ impl HintProcessorLogic for BootloaderHintProcessor {
         }
 
         self.builtin_hint_processor
-            .execute_hint_extensive(vm, exec_scopes, hint_data, constants)
+            .execute_hint_extensive(vm, exec_scopes, hint_data)
     }
 }
 

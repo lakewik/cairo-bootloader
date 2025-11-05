@@ -88,7 +88,7 @@ pub fn run_bootloader(args: RunBootloaderArgs) -> Result<CairoRunner, Error> {
         cairo_runner
             .get_cairo_pie()
             .map_err(|e| Error::CairoPie(e.to_string()))?
-            .write_zip_file(file_name)?
+            .write_zip_file(file_name, true)?
     }
 
     Ok(cairo_runner)
