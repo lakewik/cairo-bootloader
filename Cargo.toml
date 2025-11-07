@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.3.10", features = ["derive"] }
 # Unify cairo-vm with the rest of the workspace to match trait signatures (compile_hint/execute_hint_extensive)
-cairo-vm = { path = "/home/kiki/Documents/HERODOTUS/cairo-vm/vm", features = [
+cairo-vm = {  git = "https://github.com/lakewik/cairo-vm", rev = "55970ab7587b3e0e8657abe4a95d440b9ce6db1d", features = [
     "extensive_hints",
     "clap",
 ] }
