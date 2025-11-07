@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fs::File, path::Path};
+use std::{
+    collections::{BTreeMap, HashMap},
+    fs::File,
+    path::Path,
+};
 
 use cairo_vm::{
     types::{builtin_name::BuiltinName, errors::math_errors::MathError, relocatable::Relocatable},
@@ -378,14 +382,14 @@ pub fn get_task_fact_topology(
                 match additional_data {
                     BuiltinAdditionalData::Output(output_data) => output_data,
                     _ => &OutputBuiltinAdditionalData {
-                        pages: HashMap::new(),
-                        attributes: HashMap::new(),
+                        pages: BTreeMap::new(),
+                        attributes: BTreeMap::new(),
                     },
                 }
             } else {
                 &OutputBuiltinAdditionalData {
-                    pages: HashMap::new(),
-                    attributes: HashMap::new(),
+                    pages: BTreeMap::new(),
+                    attributes: BTreeMap::new(),
                 }
             }
         };

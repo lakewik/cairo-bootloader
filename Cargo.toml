@@ -5,7 +5,8 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.3.10", features = ["derive"] }
-cairo-vm = { git = "https://github.com/lakewik/cairo-vm", branch = "test1", features = [
+# Unify cairo-vm with the rest of the workspace to match trait signatures (compile_hint/execute_hint_extensive)
+cairo-vm = { path = "/home/kiki/Documents/HERODOTUS/cairo-vm/vm", features = [
     "extensive_hints",
     "clap",
 ] }
@@ -13,7 +14,7 @@ num-traits = "0.2.19"
 serde = { version = "1.0.202", features = ["derive"] }
 serde_json = "1.0.117"
 starknet-crypto = "0.8.0"
-starknet-types-core = "0.2.4"
+starknet-types-core = "0.2.3"
 thiserror-no-std = "2.0.2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

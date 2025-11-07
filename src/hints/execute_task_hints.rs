@@ -452,6 +452,7 @@ fn vm_load_program(
                 &hint.flow_tracking_data.ap_tracking,
                 &hint.flow_tracking_data.reference_ids,
                 references,
+                &[], // accessible_scopes
                 constants.clone(),
             )?;
             task_program_compiled_hints
@@ -485,7 +486,8 @@ mod util {
     ) -> Result<Option<OutputBuiltinState>, HintError> {
         if task.as_any().downcast_ref::<RunProgramTask>().is_some() {
             let output_state = output_builtin.get_state();
-            output_builtin.new_state(output_ptr.segment_index as usize, true);
+            // API change: new_state(base, base_offset, included)
+            output_builtin.new_state(output_ptr.segment_index as usize, 0, true);
             Ok(Some(output_state))
         } else if task.as_any().downcast_ref::<CairoPieTask>().is_some() {
             Ok(None)
